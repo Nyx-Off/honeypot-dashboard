@@ -5,4 +5,3 @@ pymongo==4.3.3
 geoip2==4.6.0
 eventlet==0.30.2
 python-dateutil==2.8.2
-bson==0.5.10
