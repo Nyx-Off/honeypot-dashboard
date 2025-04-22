@@ -7,7 +7,7 @@ services:
       - "2223:2223"
     volumes:
       - ./cowrie/cowrie.cfg:/cowrie/cowrie-git/etc/cowrie.cfg:ro
-      - ./cowrie/log:/cowrie/cowrie-git/log:rw
+      - ./cowrie/log:/cowrie/cowrie-git/var/log:rw
       - ./cowrie/keys:/home/cowrie/keys:ro
       - ./cowrie/data/rootfs:/home/cowrie/data/rootfs:ro
 
