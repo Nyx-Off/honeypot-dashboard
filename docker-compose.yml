@@ -24,7 +24,7 @@ services:
       - cowrie
       - mongo
     volumes:
-      - ./cowrie/log:/cowrie/cowrie-git/var/log:ro
+      - ./cowrie/log:/cowrie/cowrie-git/log:ro
 
   dashboard:
     build: ./dashboard

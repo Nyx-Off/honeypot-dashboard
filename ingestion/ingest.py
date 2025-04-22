@@ -1,7 +1,7 @@
 import json, time
 from pymongo import MongoClient
 
-def tail_log(path="/cowrie/cowrie-git/var/log/cowrie.json"):
+def tail_log(path="/cowrie/cowrie-git/log/cowrie.json"):
     client = MongoClient("mongodb://mongo:27017/")
     db = client.cowrie
     col = db.events
