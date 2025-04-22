@@ -7,7 +7,9 @@ services:
       - "2223:2223"
     volumes:
       - ./cowrie/cowrie.cfg:/cowrie/cowrie-git/etc/cowrie.cfg:ro
+      # Ajoutons des points de montage spécifiques pour les deux chemins possibles
       - ./cowrie/log:/cowrie/cowrie-git/var/log:rw
+      - ./cowrie/log/cowrie:/cowrie/cowrie-git/var/log/cowrie:rw
       - ./cowrie/keys:/home/cowrie/keys:ro
       - ./cowrie/data/rootfs:/home/cowrie/data/rootfs:ro
 
@@ -24,7 +26,9 @@ services:
       - cowrie
       - mongo
     volumes:
+      # Montons également le dossier parent pour couvrir les deux possibilités
       - ./cowrie/log:/cowrie/cowrie-git/var/log:ro
+      - ./cowrie/log/cowrie:/cowrie/cowrie-git/var/log/cowrie:ro
 
   dashboard:
     build: ./dashboard
@@ -39,4 +43,3 @@ services:
 
 volumes:
   mongo_data:
-
