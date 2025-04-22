@@ -4,7 +4,7 @@ from pymongo import MongoClient
 import threading, time, json
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode='eventlet')
 
 # Connexion à MongoDB
 try:
@@ -88,5 +88,4 @@ def on_connect():
 
 if __name__ == '__main__':
     print("Démarrage du dashboard sur 0.0.0.0:5000")
-    # Modification : spécifier explicitement le mode async
-    socketio.run(app, host='0.0.0.0', port=5000, async_mode='eventlet')
+    socketio.run(app, host='0.0.0.0', port=5000)
