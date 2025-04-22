@@ -1,29 +1,718 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
   <meta charset="utf-8">
-  <title>Honeypot Dashboard</title>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Honeypot Security Dashboard</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <style>
-    body { font-family: sans-serif; }
-    #events { max-height: 70vh; overflow-y: scroll; }
-    .evt { border-bottom: 1px solid #ddd; padding: 5px; }
+    :root {
+      --primary-color: #4e73df;
+      --success-color: #1cc88a;
+      --info-color: #36b9cc;
+      --warning-color: #f6c23e;
+      --danger-color: #e74a3b;
+      --dark-color: #2f3136;
+      --darker-color: #23272a;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fc;
+      color: #5a5c69;
+    }
+    
+    .navbar {
+      background-color: var(--dark-color);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .navbar-brand {
+      color: white;
+      font-weight: 700;
+    }
+    
+    .dashboard-title {
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: var(--dark-color);
+    }
+    
+    .card {
+      border: none;
+      border-radius: 0.35rem;
+      box-shadow: 0 0.15rem 1.75rem rgba(0, 0, 0, 0.1);
+      margin-bottom: 1.5rem;
+    }
+    
+    .card-header {
+      background-color: #f8f9fc;
+      border-bottom: 1px solid #e3e6f0;
+      padding: 0.75rem 1.25rem;
+      font-weight: bold;
+      color: var(--dark-color);
+    }
+    
+    .stat-card {
+      border-left: 4px solid;
+      transition: transform 0.3s;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+    
+    .stat-card.border-primary {
+      border-left-color: var(--primary-color);
+    }
+    
+    .stat-card.border-success {
+      border-left-color: var(--success-color);
+    }
+    
+    .stat-card.border-info {
+      border-left-color: var(--info-color);
+    }
+    
+    .stat-card.border-warning {
+      border-left-color: var(--warning-color);
+    }
+    
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--dark-color);
+    }
+    
+    .stat-label {
+      font-weight: 500;
+      color: #6c757d;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+    }
+    
+    .event-item {
+      border-left: 3px solid transparent;
+      transition: background-color 0.2s;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: 0.25rem;
+      background-color: white;
+    }
+    
+    .event-item:hover {
+      background-color: #f8f9fc;
+    }
+    
+    .event-item.new {
+      animation: highlight 2s ease-out;
+    }
+    
+    .event-item.auth {
+      border-left-color: var(--primary-color);
+    }
+    
+    .event-item.command {
+      border-left-color: var(--success-color);
+    }
+    
+    .event-item.session {
+      border-left-color: var(--info-color);
+    }
+    
+    .event-item.other {
+      border-left-color: var(--warning-color);
+    }
+    
+    .event-type-badge {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      font-weight: 600;
+    }
+    
+    .event-ip {
+      font-weight: 600;
+      color: var(--danger-color);
+    }
+    
+    .event-timestamp {
+      font-size: 0.8rem;
+      color: #6c757d;
+    }
+    
+    .events-container {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    
+    .chart-container {
+      height: 250px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #6c757d;
+    }
+    
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    
+    @keyframes highlight {
+      0% { background-color: rgba(78, 115, 223, 0.2); }
+      100% { background-color: transparent; }
+    }
+    
+    /* Personnalisation du scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+    
+    /* Animation de chargement */
+    .loading-spinner {
+      display: inline-block;
+      width: 80px;
+      height: 80px;
+    }
+    .loading-spinner:after {
+      content: " ";
+      display: block;
+      width: 64px;
+      height: 64px;
+      margin: 8px;
+      border-radius: 50%;
+      border: 6px solid var(--primary-color);
+      border-color: var(--primary-color) transparent var(--primary-color) transparent;
+      animation: spinner 1.2s linear infinite;
+    }
+    @keyframes spinner {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Prévisualisation du code */
+    .code-preview {
+      font-family: 'Courier New', Courier, monospace;
+      background-color: #f8f9fc;
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      margin-top: 0.5rem;
+      white-space: pre-wrap;
+      font-size: 0.85rem;
+    }
   </style>
 </head>
 <body>
-  <h1>Honeypot en direct</h1>
-  <div id="events"></div>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">
+        <i class="fas fa-shield-alt me-2"></i>
+        Honeypot Security Dashboard
+      </a>
+      <div class="ms-auto text-white">
+        <span id="connection-status">
+          <i class="fas fa-circle text-success me-1"></i>
+          <span>Connecté</span>
+        </span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid">
+    <!-- Titre Dashboard -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+      <h1 class="dashboard-title">Tableau de bord des attaques</h1>
+      <div class="btn-group" role="group">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="refresh-btn">
+          <i class="fas fa-sync-alt me-1"></i> Rafraîchir
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-danger" id="clear-btn">
+          <i class="fas fa-trash me-1"></i> Vider
+        </button>
+      </div>
+    </div>
+
+    <!-- Cartes statistiques -->
+    <div class="row">
+      <div class="col-xl-3 col-md-6">
+        <div class="card stat-card border-primary h-100">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col">
+                <div class="stat-label">Tentatives totales</div>
+                <div class="stat-value" id="total-events">0</div>
+              </div>
+              <div class="col-auto">
+                <i class="fas fa-server fa-2x text-gray-300"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-xl-3 col-md-6">
+        <div class="card stat-card border-success h-100">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col">
+                <div class="stat-label">IP Uniques</div>
+                <div class="stat-value" id="unique-ips">0</div>
+              </div>
+              <div class="col-auto">
+                <i class="fas fa-globe fa-2x text-gray-300"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-xl-3 col-md-6">
+        <div class="card stat-card border-info h-100">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col">
+                <div class="stat-label">Login tentés</div>
+                <div class="stat-value" id="login-attempts">0</div>
+              </div>
+              <div class="col-auto">
+                <i class="fas fa-user-lock fa-2x text-gray-300"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-xl-3 col-md-6">
+        <div class="card stat-card border-warning h-100">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col">
+                <div class="stat-label">Sessions</div>
+                <div class="stat-value" id="sessions-count">0</div>
+              </div>
+              <div class="col-auto">
+                <i class="fas fa-terminal fa-2x text-gray-300"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graphiques et événements -->
+    <div class="row mt-4">
+      <!-- Graphiques -->
+      <div class="col-lg-6">
+        <div class="card mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-chart-bar me-1"></i> Statistiques d'attaques</span>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="chartOptionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                Options
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="chartOptionsDropdown">
+                <li><a class="dropdown-item" href="#" data-period="hour">Dernière heure</a></li>
+                <li><a class="dropdown-item" href="#" data-period="day">Dernier jour</a></li>
+                <li><a class="dropdown-item" href="#" data-period="week">Dernière semaine</a></li>
+              </ul>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="attacksChart"></canvas>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <i class="fas fa-globe me-1"></i> Origine des attaques
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="geographyChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Liste des événements -->
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>
+              <i class="fas fa-list me-1"></i> Événements en temps réel
+              <span class="badge bg-danger ms-2" id="events-count">0</span>
+            </span>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="autoScrollSwitch" checked>
+              <label class="form-check-label" for="autoScrollSwitch">Défilement auto</label>
+            </div>
+          </div>
+          <div class="card-body events-container" id="events-container">
+            <div class="empty-state" id="empty-state">
+              <i class="fas fa-search"></i>
+              <h5>Aucun événement pour le moment</h5>
+              <p>Les tentatives d'attaque s'afficheront ici en temps réel.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
-    const socket = io();
-    socket.on("new_event", evt => {
-      const el = document.createElement("div");
-      el.className = "evt";
-      el.textContent = `[${evt.timestamp}] ${evt.src_ip} ➔ ${evt.username||""} (${evt.command||evt.event})`;
-      document.getElementById("events").prepend(el);
-      // TODO : mise à jour carte/graph
+    // Configuration
+    const MAX_EVENTS = 100;  // Nombre maximal d'événements à conserver
+    let autoScroll = true;
+    let stats = {
+      totalEvents: 0,
+      uniqueIps: new Set(),
+      loginAttempts: 0,
+      sessionsCount: 0,
+      eventsByType: {}
+    };
+    
+    // Initialisation des graphiques
+    const attacksCtx = document.getElementById('attacksChart').getContext('2d');
+    const attacksChart = new Chart(attacksCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Connexions', 'Authentifications', 'Commandes', 'Sessions', 'Autres'],
+        datasets: [{
+          label: 'Nombre d\'événements',
+          data: [0, 0, 0, 0, 0],
+          backgroundColor: [
+            'rgba(78, 115, 223, 0.5)',
+            'rgba(28, 200, 138, 0.5)',
+            'rgba(54, 185, 204, 0.5)',
+            'rgba(246, 194, 62, 0.5)',
+            'rgba(231, 74, 59, 0.5)'
+          ],
+          borderColor: [
+            'rgb(78, 115, 223)',
+            'rgb(28, 200, 138)',
+            'rgb(54, 185, 204)',
+            'rgb(246, 194, 62)',
+            'rgb(231, 74, 59)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              precision: 0
+            }
+          }
+        }
+      }
     });
+    
+    const geoCtx = document.getElementById('geographyChart').getContext('2d');
+    const geoChart = new Chart(geoCtx, {
+      type: 'pie',
+      data: {
+        labels: [],
+        datasets: [{
+          data: [],
+          backgroundColor: [
+            'rgba(78, 115, 223, 0.8)',
+            'rgba(28, 200, 138, 0.8)',
+            'rgba(54, 185, 204, 0.8)',
+            'rgba(246, 194, 62, 0.8)',
+            'rgba(231, 74, 59, 0.8)',
+            'rgba(116, 88, 177, 0.8)',
+            'rgba(32, 168, 216, 0.8)',
+            'rgba(247, 163, 92, 0.8)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+          }
+        }
+      }
+    });
+    
+    // Connexion au socket
+    const socket = io();
+    
+    socket.on('connect', function() {
+      document.getElementById('connection-status').innerHTML = '<i class="fas fa-circle text-success me-1"></i><span>Connecté</span>';
+    });
+    
+    socket.on('disconnect', function() {
+      document.getElementById('connection-status').innerHTML = '<i class="fas fa-circle text-danger me-1"></i><span>Déconnecté</span>';
+    });
+    
+    // Formatage de la date en tenant compte du fuseau horaire local
+    function formatTimestamp(timestamp) {
+      if (!timestamp) return 'N/A';
+      const date = new Date(timestamp);
+      return date.toLocaleString();
+    }
+    
+    // Déterminer le type d'événement
+    function getEventType(eventId) {
+      if (!eventId) return 'other';
+      if (eventId.includes('auth') || eventId.includes('login')) return 'auth';
+      if (eventId.includes('command')) return 'command';
+      if (eventId.includes('session')) return 'session';
+      if (eventId.includes('client')) return 'client';
+      return 'other';
+    }
+    
+    // Mise à jour des statistiques
+    function updateStats() {
+      document.getElementById('total-events').textContent = stats.totalEvents;
+      document.getElementById('unique-ips').textContent = stats.uniqueIps.size;
+      document.getElementById('login-attempts').textContent = stats.loginAttempts;
+      document.getElementById('sessions-count').textContent = stats.sessionsCount;
+      document.getElementById('events-count').textContent = document.querySelectorAll('.event-item').length;
+      
+      // Mise à jour du graphique des attaques
+      const chartData = [
+        stats.eventsByType['client'] || 0,
+        stats.eventsByType['auth'] || 0,
+        stats.eventsByType['command'] || 0,
+        stats.eventsByType['session'] || 0,
+        stats.eventsByType['other'] || 0
+      ];
+      attacksChart.data.datasets[0].data = chartData;
+      attacksChart.update();
+      
+      // Masquer/afficher le message vide
+      const emptyState = document.getElementById('empty-state');
+      const eventsContainer = document.getElementById('events-container');
+      if (stats.totalEvents > 0) {
+        emptyState.style.display = 'none';
+      } else {
+        emptyState.style.display = 'block';
+      }
+    }
+    
+    // Mise à jour du graphique géographique
+    function updateGeoChart() {
+      // Compter les événements par pays
+      const countryCounts = {};
+      
+      document.querySelectorAll('.event-item').forEach(item => {
+        const country = item.dataset.country;
+        if (country && country !== 'Unknown') {
+          countryCounts[country] = (countryCounts[country] || 0) + 1;
+        }
+      });
+      
+      // Convertir en tableaux pour le graphique
+      const countries = Object.keys(countryCounts);
+      const counts = countries.map(country => countryCounts[country]);
+      
+      // Mettre à jour le graphique
+      if (countries.length > 0) {
+        geoChart.data.labels = countries;
+        geoChart.data.datasets[0].data = counts;
+        geoChart.update();
+      }
+    }
+    
+    // Créer un élément pour un événement
+    function createEventElement(event) {
+      const eventType = getEventType(event.eventid);
+      const timestamp = formatTimestamp(event.timestamp);
+      const srcIp = event.src_ip || 'N/A';
+      const eventId = event.eventid || 'unknown';
+      const country = 'Unknown'; // À remplacer par la vraie valeur si disponible
+      
+      // Informations spécifiques à afficher
+      let specificInfo = '';
+      if (eventType === 'auth' && event.username) {
+        specificInfo = `<div class="mt-2">Utilisateur: <strong>${event.username}</strong></div>`;
+      } else if (eventType === 'command' && event.command) {
+        specificInfo = `<div class="mt-2">Commande: <code>${event.command}</code></div>`;
+      } else if (event.message) {
+        specificInfo = `<div class="mt-2">${event.message}</div>`;
+      }
+      
+      // Créer l'élément HTML
+      const element = document.createElement('div');
+      element.className = `event-item ${eventType} new`;
+      element.dataset.country = country;
+      element.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <span class="event-timestamp">${timestamp}</span>
+            <div class="mt-1">
+              <span class="event-ip me-2">${srcIp}</span>
+              <span class="event-type-badge bg-light text-dark">${eventId}</span>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" 
+                  data-bs-toggle="collapse" 
+                  data-bs-target="#details-${event._id}" 
+                  aria-expanded="false">
+            <i class="fas fa-info-circle"></i>
+          </button>
+        </div>
+        ${specificInfo}
+        <div class="collapse mt-2" id="details-${event._id}">
+          <div class="code-preview">
+            ${JSON.stringify(event, null, 2)}
+          </div>
+        </div>
+      `;
+      
+      // Supprimer la classe "new" après l'animation
+      setTimeout(() => {
+        element.classList.remove('new');
+      }, 2000);
+      
+      return element;
+    }
+    
+    // Réception d'un nouvel événement
+    socket.on('new_event', function(event) {
+      // Mise à jour des statistiques
+      stats.totalEvents++;
+      if (event.src_ip) stats.uniqueIps.add(event.src_ip);
+      
+      const eventType = getEventType(event.eventid);
+      stats.eventsByType[eventType] = (stats.eventsByType[eventType] || 0) + 1;
+      
+      if (eventType === 'auth') {
+        stats.loginAttempts++;
+      } else if (eventType === 'session') {
+        stats.sessionsCount++;
+      }
+      
+      // Créer l'élément d'événement
+      const eventsContainer = document.getElementById('events-container');
+      const newEvent = createEventElement(event);
+      
+      // Ajouter au début de la liste
+      if (eventsContainer.firstChild && eventsContainer.firstChild !== document.getElementById('empty-state')) {
+        eventsContainer.insertBefore(newEvent, eventsContainer.firstChild);
+      } else {
+        eventsContainer.appendChild(newEvent);
+      }
+      
+      // Limiter le nombre d'événements affichés
+      const events = eventsContainer.querySelectorAll('.event-item');
+      if (events.length > MAX_EVENTS) {
+        events[events.length - 1].remove();
+      }
+      
+      // Défilement automatique
+      if (autoScroll) {
+        eventsContainer.scrollTop = 0;
+      }
+      
+      // Mettre à jour les statistiques et graphiques
+      updateStats();
+      updateGeoChart();
+    });
+    
+    // Événements UI
+    document.getElementById('autoScrollSwitch').addEventListener('change', function() {
+      autoScroll = this.checked;
+    });
+    
+    document.getElementById('refresh-btn').addEventListener('click', function() {
+      location.reload();
+    });
+    
+    document.getElementById('clear-btn').addEventListener('click', function() {
+      if (confirm('Êtes-vous sûr de vouloir effacer tous les événements?')) {
+        const eventsContainer = document.getElementById('events-container');
+        while (eventsContainer.firstChild) {
+          eventsContainer.removeChild(eventsContainer.firstChild);
+        }
+        
+        // Réinitialiser les statistiques
+        stats.totalEvents = 0;
+        stats.uniqueIps = new Set();
+        stats.loginAttempts = 0;
+        stats.sessionsCount = 0;
+        stats.eventsByType = {};
+        
+        // Afficher le message vide
+        document.getElementById('empty-state').style.display = 'block';
+        
+        // Mettre à jour les statistiques et graphiques
+        updateStats();
+        updateGeoChart();
+      }
+    });
+    
+    // Chargement initial des événements via l'API
+    fetch('/api/events')
+      .then(response => response.json())
+      .then(events => {
+        const eventsContainer = document.getElementById('events-container');
+        
+        // Traiter les événements en ordre inverse (plus récents d'abord)
+        for (const event of events) {
+          // Mise à jour des statistiques
+          if (event.src_ip) stats.uniqueIps.add(event.src_ip);
+          
+          const eventType = getEventType(event.eventid);
+          stats.eventsByType[eventType] = (stats.eventsByType[eventType] || 0) + 1;
+          
+          if (eventType === 'auth') {
+            stats.loginAttempts++;
+          } else if (eventType === 'session') {
+            stats.sessionsCount++;
+          }
+          
+          // Créer et ajouter l'élément
+          const eventElement = createEventElement(event);
+          eventsContainer.appendChild(eventElement);
+          
+          // Limiter le nombre d'événements
+          if (eventsContainer.children.length > MAX_EVENTS) {
+            break;
+          }
+        }
+        
+        // Mettre à jour le compteur total
+        stats.totalEvents = events.length;
+        
+        // Mettre à jour les statistiques et graphiques
+        updateStats();
+        updateGeoChart();
+      })
+      .catch(error => {
+        console.error('Erreur lors du chargement des événements:', error);
+      });
   </script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

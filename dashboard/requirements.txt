@@ -1,5 +1,6 @@
-Flask
-flask-socketio
-pymongo
-geoip2
-eventlet
+Flask==2.2.3
+flask-socketio==5.3.2
+pymongo==4.3.3
+geoip2==4.6.0
+eventlet==0.33.3
+python-dateutil==2.8.2
