@@ -549,7 +549,18 @@
       const timestamp = formatTimestamp(event.timestamp);
       const srcIp = event.src_ip || 'N/A';
       const eventId = event.eventid || 'unknown';
-      const country = 'Unknown'; // À remplacer par la vraie valeur si disponible
+      
+      // Extraire le pays depuis les données de l'événement
+      // Cette propriété pourrait être différente selon la structure de vos données
+      // Essayons plusieurs possibilités courantes
+      let country = 'Unknown';
+      if (event.geoip && event.geoip.country_name) {
+        country = event.geoip.country_name;
+      } else if (event.country_name) {
+        country = event.country_name;
+      } else if (event.country) {
+        country = event.country;
+      }
       
       // Informations spécifiques à afficher
       let specificInfo = '';
@@ -559,6 +570,11 @@
         specificInfo = `<div class="mt-2">Commande: <code>${event.command}</code></div>`;
       } else if (event.message) {
         specificInfo = `<div class="mt-2">${event.message}</div>`;
+      }
+      
+      // Ajouter une indication du pays si disponible
+      if (country !== 'Unknown') {
+        specificInfo += `<div class="mt-1"><i class="fas fa-globe me-1"></i> ${country}</div>`;
       }
       
       // Créer l'élément HTML
@@ -647,29 +663,49 @@
     document.getElementById('refresh-btn').addEventListener('click', function() {
       location.reload();
     });
-    
+
     document.getElementById('clear-btn').addEventListener('click', function() {
-      if (confirm('Êtes-vous sûr de vouloir effacer tous les événements?')) {
-        const eventsContainer = document.getElementById('events-container');
-        while (eventsContainer.firstChild) {
-          eventsContainer.removeChild(eventsContainer.firstChild);
-        }
-        
-        // Réinitialiser les statistiques
-        stats.totalEvents = 0;
-        stats.uniqueIps = new Set();
-        stats.loginAttempts = 0;
-        stats.sessionsCount = 0;
-        stats.eventsByType = {};
-        
-        // Afficher le message vide
-        document.getElementById('empty-state').style.display = 'block';
-        
-        // Mettre à jour les statistiques et graphiques
-        updateStats();
-        updateGeoChart();
+      if (confirm('Êtes-vous sûr de vouloir effacer tous les événements? Cette action supprimera également les données dans la base de données.')) {
+        // Appel à l'API pour supprimer les événements de la base de données
+        fetch('/api/events/clear', {
+          method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Notification de succès
+            alert(`${data.deleted_count} événements ont été supprimés de la base de données.`);
+            
+            // Vidage de l'interface
+            const eventsContainer = document.getElementById('events-container');
+            while (eventsContainer.firstChild) {
+              eventsContainer.removeChild(eventsContainer.firstChild);
+            }
+            
+            // Réinitialiser les statistiques
+            stats.totalEvents = 0;
+            stats.uniqueIps = new Set();
+            stats.loginAttempts = 0;
+            stats.sessionsCount = 0;
+            stats.eventsByType = {};
+            
+            // Afficher le message vide
+            document.getElementById('empty-state').style.display = 'block';
+            
+            // Mettre à jour les statistiques et graphiques
+            updateStats();
+            updateGeoChart();
+          } else {
+            alert('Erreur lors de la suppression des événements.');
+          }
+        })
+        .catch(error => {
+          console.error('Erreur:', error);
+          alert('Erreur lors de la suppression des événements.');
+       });
       }
     });
+    
     
     // Chargement initial des événements via l'API
     fetch('/api/events')
@@ -677,7 +713,7 @@
       .then(events => {
         const eventsContainer = document.getElementById('events-container');
         
-        // Traiter les événements en ordre inverse (plus récents d'abord)
+        // Traiter les événements (plus récents d'abord)
         for (const event of events) {
           // Mise à jour des statistiques
           if (event.src_ip) stats.uniqueIps.add(event.src_ip);
@@ -691,13 +727,14 @@
             stats.sessionsCount++;
           }
           
-          // Créer et ajouter l'élément
+          // Créer l'élément d'événement
           const eventElement = createEventElement(event);
-          eventsContainer.appendChild(eventElement);
           
-          // Limiter le nombre d'événements
-          if (eventsContainer.children.length > MAX_EVENTS) {
-            break;
+          // Ajouter au début de la liste (comme pour les nouveaux événements)
+          if (eventsContainer.firstChild && eventsContainer.firstChild !== document.getElementById('empty-state')) {
+            eventsContainer.insertBefore(eventElement, eventsContainer.firstChild);
+          } else {
+            eventsContainer.appendChild(eventElement);
           }
         }
         

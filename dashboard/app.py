@@ -68,7 +68,7 @@ def get_events():
     """API pour récupérer les derniers événements"""
     try:
         # Récupération des 100 derniers événements
-        events = list(events_collection.find().sort('_id', -1).limit(100))
+        events = list(events_collection.find().sort('_id', -1).limit(1000))
         
         # Conversion en format JSON
         formatted_events = [format_event(event) for event in events]
@@ -76,6 +76,19 @@ def get_events():
         return jsonify(formatted_events)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/events/clear', methods=['POST'])
+def clear_events():
+    """API pour supprimer tous les événements de la base de données"""
+    try:
+        # Suppression de tous les documents de la collection events
+        result = events_collection.delete_many({})
+        
+        # Retourne le nombre de documents supprimés
+        return jsonify({'success': True, 'deleted_count': result.deleted_count}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @socketio.on('connect')
 def on_connect():
