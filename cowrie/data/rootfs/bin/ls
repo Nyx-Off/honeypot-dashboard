@@ -1,0 +1,2 @@
+#!/bin/sh
+echo "file1.txt  file2.txt  secret.txt"

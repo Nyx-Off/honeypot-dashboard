@@ -1,0 +1,42 @@
+services:
+  cowrie:
+    image: cowrie/cowrie:latest
+    restart: unless-stopped
+    ports:
+      - "2222:2222"
+      - "2223:2223"
+    volumes:
+      - ./cowrie/cowrie.cfg:/cowrie/cowrie-git/etc/cowrie.cfg:ro
+      - ./cowrie/log:/cowrie/cowrie-git/log:rw
+      - ./cowrie/keys:/home/cowrie/keys:ro
+      - ./cowrie/data/rootfs:/home/cowrie/data/rootfs:ro
+
+  mongo:
+    image: mongo:5
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+
+  ingestion:
+    build: ./ingestion
+    restart: unless-stopped
+    depends_on:
+      - cowrie
+      - mongo
+    volumes:
+      - ./cowrie/log:/cowrie/cowrie-git/var/log:ro
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - ingestion
+    volumes:
+      - ./dashboard/GeoLite2-City.mmdb:/app/GeoLite2-City.mmdb:ro
+
+volumes:
+  mongo_data:
+
