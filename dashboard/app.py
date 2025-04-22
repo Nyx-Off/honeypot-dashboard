@@ -88,4 +88,5 @@ def on_connect():
 
 if __name__ == '__main__':
     print("Démarrage du dashboard sur 0.0.0.0:5000")
-    socketio.run(app, host='0.0.0.0', port=5000)
+    # Modification : spécifier explicitement le mode async
+    socketio.run(app, host='0.0.0.0', port=5000, async_mode='eventlet')
