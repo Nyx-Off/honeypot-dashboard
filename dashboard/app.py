@@ -1,10 +1,24 @@
 from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO
 from pymongo import MongoClient
-import threading, time, json
+import threading, time, json, os
+import geoip2.database 
 
 app = Flask(__name__)
 socketio = SocketIO(app, async_mode='eventlet')
+
+GEOIP_DB_PATH = "/app/GeoLite2-City.mmdb"
+geoip_reader = None
+
+# Vérification et initialisation de la base GeoIP2
+if os.path.exists(GEOIP_DB_PATH):
+    try:
+        geoip_reader = geoip2.database.Reader(GEOIP_DB_PATH)
+        print(f"Base de données GeoIP2 chargée: {GEOIP_DB_PATH}")
+    except Exception as e:
+        print(f"Erreur de chargement de la base GeoIP2: {e}")
+else:
+    print(f"Fichier de base de données GeoIP2 non trouvé: {GEOIP_DB_PATH}")
 
 # Connexion à MongoDB
 try:
@@ -16,10 +30,34 @@ except Exception as e:
     print(f"ERREUR MongoDB: {e}")
     raise
 
+def get_ip_location(ip):
+    """Obtient la géolocalisation d'une adresse IP"""
+    if not geoip_reader or not ip:
+        return None
+    
+    try:
+        response = geoip_reader.city(ip)
+        return {
+            "country_code": response.country.iso_code,
+            "country_name": response.country.name,
+            "city": response.city.name,
+            "latitude": response.location.latitude,
+            "longitude": response.location.longitude
+        }
+    except Exception as e:
+        print(f"Erreur de géolocalisation pour IP {ip}: {e}")
+        return None
+
+
 def format_event(event):
     """Convertit les ObjectId en chaînes pour la sérialisation JSON"""
     if '_id' in event:
         event['_id'] = str(event['_id'])
+    if 'src_ip' in event and geoip_reader:
+        geoip_info = get_ip_location(event['src_ip'])
+        if geoip_info:
+            event['geoip'] = geoip_info
+
     return event
 
 def watch_events():
