@@ -8,6 +8,7 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
   <style>
     :root {
       --primary-color: #4e73df;
@@ -243,7 +244,7 @@
       top: 0;
       background-color: #f8f9fc;
       padding: 8px;
-      margin: -16px -16px 10px -16px;
+      margin: -1px -1px 10px -1px;
       border-bottom: 1px solid #e3e6f0;
       z-index: 10;
     }
@@ -417,18 +418,15 @@
           <div class="card-body p-0">
             <div class="events-header p-3">
               <div class="d-flex justify-content-between align-items-center">
-                <span>
-                  <strong>Derniers événements</strong>
-                  <span class="ms-2 badge bg-secondary" id="unread-count">0 non lus</span>
-                </span>
                 <div class="btn-group btn-group-sm">
                   <button class="btn btn-outline-secondary" id="mark-all-read">
-                    <i class="fas fa-eye"></i>
+                    <i class="fas fa-eye"></i> Marquer tout comme lu
                   </button>
                   <button class="btn btn-outline-secondary" id="toggle-details">
-                    <i class="fas fa-list"></i>
+                    <i class="fas fa-list"></i> Afficher détails
                   </button>
                 </div>
+                <span class="ms-2 badge bg-secondary" id="unread-count">0 non lus</span>
               </div>
             </div>
             <div class="events-container p-3" id="events-container">
@@ -457,12 +455,6 @@
       countryData: {}
     };
     let unreadEvents = 0;
-    
-    // Initialisation des tooltips Bootstrap
-    //const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    //const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-    // return new bootstrap.Tooltip(tooltipTriggerEl);
-    //});
     
     // Initialisation des graphiques
     const attacksCtx = document.getElementById('attacksChart').getContext('2d');
@@ -550,11 +542,52 @@
       }
     });
     
+    // Fonction pour charger les statistiques globales
+    function loadGlobalStats() {
+      fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+          // Mise à jour des compteurs
+          document.getElementById('total-events').textContent = data.total_events;
+          document.getElementById('unique-ips').textContent = data.unique_ips;
+          document.getElementById('login-attempts').textContent = data.login_attempts;
+          document.getElementById('sessions-count').textContent = data.sessions;
+          
+          // Mise à jour du graphique des attaques
+          const chartData = [
+            data.event_types.client || 0,
+            data.event_types.auth || 0,
+            data.event_types.command || 0,
+            data.event_types.session || 0,
+            data.event_types.other || 0
+          ];
+          attacksChart.data.datasets[0].data = chartData;
+          attacksChart.update();
+          
+          // Mise à jour du graphique géographique
+          if (data.country_stats && Object.keys(data.country_stats).length > 0) {
+            const countries = Object.keys(data.country_stats).sort((a, b) => data.country_stats[b] - data.country_stats[a]);
+            const counts = countries.map(country => data.country_stats[country]);
+            
+            geoChart.data.labels = countries;
+            geoChart.data.datasets[0].data = counts;
+            geoChart.update();
+            document.getElementById('geo-message').classList.add('d-none');
+          } else {
+            document.getElementById('geo-message').classList.remove('d-none');
+          }
+        })
+        .catch(error => {
+          console.error('Erreur lors du chargement des statistiques:', error);
+        });
+    }
+    
     // Connexion au socket
     const socket = io();
     
     socket.on('connect', function() {
       document.getElementById('connection-status').innerHTML = '<i class="fas fa-circle text-success me-1"></i><span>Connecté</span>';
+      console.log("WebSocket connecté avec succès");
     });
     
     socket.on('disconnect', function() {
@@ -578,64 +611,18 @@
       return 'other';
     }
     
-    // Mise à jour des statistiques
-    function updateStats() {
-      document.getElementById('total-events').textContent = stats.totalEvents;
-      document.getElementById('unique-ips').textContent = stats.uniqueIps.size;
-      document.getElementById('login-attempts').textContent = stats.loginAttempts;
-      document.getElementById('sessions-count').textContent = stats.sessionsCount;
+    // Mise à jour des statistiques locales (pour la liste d'événements)
+    function updateEventStats() {
       document.getElementById('events-count').textContent = document.querySelectorAll('.event-item').length;
       document.getElementById('unread-count').textContent = `${unreadEvents} non lus`;
-      
-      // Mise à jour du graphique des attaques
-      const chartData = [
-        stats.eventsByType['client'] || 0,
-        stats.eventsByType['auth'] || 0,
-        stats.eventsByType['command'] || 0,
-        stats.eventsByType['session'] || 0,
-        stats.eventsByType['other'] || 0
-      ];
-      attacksChart.data.datasets[0].data = chartData;
-      attacksChart.update();
       
       // Masquer/afficher le message vide
       const emptyState = document.getElementById('empty-state');
       const eventsContainer = document.getElementById('events-container');
-      if (stats.totalEvents > 0) {
+      if (document.querySelectorAll('.event-item').length > 0) {
         emptyState.style.display = 'none';
       } else {
         emptyState.style.display = 'block';
-      }
-    }
-    
-    // Mise à jour du graphique géographique
-    function updateGeoChart() {
-      // Récupérer les données de pays et compter les occurrences
-      const countryData = {};
-      
-      // Collecter les pays à partir des éléments DOM
-      document.querySelectorAll('.event-item').forEach(item => {
-        const country = item.dataset.country;
-        if (country && country !== 'Unknown') {
-          countryData[country] = (countryData[country] || 0) + 1;
-        }
-      });
-      
-      // Mettre à jour les statistiques globales
-      stats.countryData = countryData;
-      
-      // Convertir en tableaux pour le graphique
-      const countries = Object.keys(countryData).sort((a, b) => countryData[b] - countryData[a]);
-      const counts = countries.map(country => countryData[country]);
-      
-      // Mettre à jour le graphique
-      if (countries.length > 0) {
-        geoChart.data.labels = countries;
-        geoChart.data.datasets[0].data = counts;
-        geoChart.update();
-        document.getElementById('geo-message').classList.add('d-none');
-      } else {
-        document.getElementById('geo-message').classList.remove('d-none');
       }
     }
     
@@ -740,18 +727,7 @@
     
     // Réception d'un nouvel événement
     socket.on('new_event', function(event) {
-      // Mise à jour des statistiques
-      stats.totalEvents++;
-      if (event.src_ip) stats.uniqueIps.add(event.src_ip);
-      
-      const eventType = getEventType(event.eventid);
-      stats.eventsByType[eventType] = (stats.eventsByType[eventType] || 0) + 1;
-      
-      if (eventType === 'auth') {
-        stats.loginAttempts++;
-      } else if (eventType === 'session') {
-        stats.sessionsCount++;
-      }
+      console.log("Événement reçu:", event);
       
       // Créer l'élément d'événement
       const eventsContainer = document.getElementById('events-container');
@@ -778,9 +754,11 @@
         eventsContainer.scrollTop = 0;
       }
       
-      // Mettre à jour les statistiques et graphiques
-      updateStats();
-      updateGeoChart();
+      // Mettre à jour les statistiques de la liste d'événements
+      updateEventStats();
+      
+      // Recharger les statistiques globales
+      loadGlobalStats();
     });
     
     // Événements UI
@@ -826,8 +804,8 @@
             document.getElementById('empty-state').style.display = 'block';
             
             // Mettre à jour les statistiques et graphiques
-            updateStats();
-            updateGeoChart();
+            updateEventStats();
+            loadGlobalStats();
           } else {
             alert('Erreur lors de la suppression des événements.');
           }
@@ -900,61 +878,49 @@
         document.getElementById('unread-count').textContent = `${unreadEvents} non lus`;
       }
     });
-// Chargement initial des événements via l'API
+    
+    // Chargement initial des événements via l'API
     fetch('/api/events')
       .then(response => response.json())
       .then(events => {
         const eventsContainer = document.getElementById('events-container');
         
         // Traiter les événements (plus récents d'abord)
-        // Inverser l'ordre pour que les plus récents soient au début
-        events.reverse();
+        // Tri des événements par date (plus récent en premier)
+        events.sort((a, b) => {
+          const dateA = new Date(a.timestamp || 0);
+          const dateB = new Date(b.timestamp || 0);
+          return dateB - dateA;  // Ordre décroissant (plus récent en premier)
+        });
         
         for (const event of events) {
-          // Mise à jour des statistiques
-          if (event.src_ip) stats.uniqueIps.add(event.src_ip);
-          
-          const eventType = getEventType(event.eventid);
-          stats.eventsByType[eventType] = (stats.eventsByType[eventType] || 0) + 1;
-          
-          if (eventType === 'auth') {
-            stats.loginAttempts++;
-          } else if (eventType === 'session') {
-            stats.sessionsCount++;
-          }
-          
           // Créer l'élément d'événement
           const eventElement = createEventElement(event);
           
           // Marquer comme déjà lu (pas nouveau)
           eventElement.dataset.unread = 'false';
           
-          // Ajouter à la liste (ordre chronologique inversé)
+          // Ajouter à la liste
           eventsContainer.appendChild(eventElement);
         }
         
-        // Mettre à jour le compteur total
-        stats.totalEvents = events.length;
-        
-        // Mettre à jour les statistiques et graphiques
-        updateStats();
-        updateGeoChart();
+        // Mettre à jour les statistiques de la liste d'événements
+        updateEventStats();
       })
       .catch(error => {
         console.error('Erreur lors du chargement des événements:', error);
       });
     
-    // Code pour activer les tooltips
+    // Code pour activer les tooltips et charger les statistiques
     document.addEventListener('DOMContentLoaded', function() {
       // Initialisation complète des tooltips Bootstrap
-        if (typeof bootstrap !== 'undefined') {
-           const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-           tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-              new bootstrap.Tooltip(tooltipTriggerEl);
-     });
-    }  
+      if (typeof bootstrap !== 'undefined') {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+          new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+      }  
 
-     
       // Initialisation du SocketIO - Éviter les déconnexions
       socket.on('error', function(error) {
         console.error('Erreur Socket.IO:', error);
@@ -966,9 +932,6 @@
         element.addEventListener('click', function(e) {
           e.preventDefault();
           const period = this.getAttribute('data-period');
-          
-          // Filtrer les événements selon la période
-          // Implémenter le filtrage ici selon les besoins
           
           // Mise à jour du titre du graphique
           let periodText = '';
@@ -987,11 +950,18 @@
           }
           
           document.getElementById('chartOptionsDropdown').textContent = periodText;
+          
+          // Charger les statistiques filtrées selon la période
+          loadGlobalStats(period);
         });
       });
+      
+      // Charger les statistiques globales au démarrage
+      loadGlobalStats();
+      
+      // Recharger les statistiques globales toutes les 30 secondes
+      setInterval(loadGlobalStats, 30000);
     });
   </script>
-  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

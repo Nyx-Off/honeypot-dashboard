@@ -128,6 +128,65 @@ def clear_events():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/stats')
+def get_stats():
+    """API pour récupérer les statistiques globales"""
+    try:
+        # Nombre total d'événements
+        total_events = events_collection.count_documents({})
+        
+        # Nombre d'IPs uniques
+        distinct_ips = events_collection.distinct('src_ip')
+        unique_ips = len([ip for ip in distinct_ips if ip])
+        
+        # Nombre de tentatives de login
+        login_attempts = events_collection.count_documents({"eventid": {"$regex": "login|auth"}})
+        
+        # Nombre de sessions
+        sessions = events_collection.count_documents({"eventid": {"$regex": "session"}})
+        
+        # Stats par type d'événement pour le graphique
+        event_types = {
+            "client": events_collection.count_documents({"eventid": {"$regex": "client"}}),
+            "auth": events_collection.count_documents({"eventid": {"$regex": "auth|login"}}),
+            "command": events_collection.count_documents({"eventid": {"$regex": "command"}}),
+            "session": events_collection.count_documents({"eventid": {"$regex": "session"}}),
+            "other": events_collection.count_documents({"eventid": {"$not": {"$regex": "client|auth|login|command|session"}}})
+        }
+        
+        # Stats par pays pour le graphique géographique
+        country_stats = {}
+        if geoip_reader:
+            pipeline = [
+                {"$match": {"src_ip": {"$exists": True, "$ne": None}}},
+                {"$group": {"_id": "$src_ip", "count": {"$sum": 1}}},
+            ]
+            ips_with_counts = list(events_collection.aggregate(pipeline))
+            
+            for ip_doc in ips_with_counts:
+                ip = ip_doc["_id"]
+                count = ip_doc["count"]
+                geo_info = get_ip_location(ip)
+                if geo_info and "country_name" in geo_info:
+                    country = geo_info["country_name"]
+                    if country in country_stats:
+                        country_stats[country] += count
+                    else:
+                        country_stats[country] = count
+        
+        return jsonify({
+            "total_events": total_events,
+            "unique_ips": unique_ips,
+            "login_attempts": login_attempts, 
+            "sessions": sessions,
+            "event_types": event_types,
+            "country_stats": country_stats
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
 @socketio.on('connect')
 def on_connect():
     """Gestion de la connexion d'un client WebSocket"""
