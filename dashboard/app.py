@@ -68,7 +68,7 @@ def get_events():
     """API pour récupérer les derniers événements"""
     try:
         # Récupération des 100 derniers événements
-        events = list(events_collection.find().sort('_id', -1).limit(1000))
+        events = list(events_collection.find().sort('_id', -1).limit(100))
         
         # Conversion en format JSON
         formatted_events = [format_event(event) for event in events]
