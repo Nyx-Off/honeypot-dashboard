@@ -4,20 +4,6 @@ Un tableau de bord en temps réel pour surveiller et analyser les tentatives d'a
 
 ![Honeypot Dashboard](https://raw.githubusercontent.com/Nyx-Off/honeypot-dashboard/main/preview.png)
 
-## 📋 Table des matières
-
-- [Présentation](#présentation)
-- [Architecture](#architecture)
-- [Prérequis](#prérequis)
-- [Installation](#installation)
-- [Configuration](#configuration)
-  - [Cowrie](#configuration-de-cowrie)
-  - [Base de données GeoIP](#base-de-données-geoip)
-- [Utilisation](#utilisation)
-- [Fonctionnalités](#fonctionnalités)
-- [Résolution des problèmes courants](#résolution-des-problèmes-courants)
-- [Licence](#licence)
-
 ## 🔍 Présentation
 
 Honeypot Dashboard est un système complet permettant de collecter, stocker et visualiser en temps réel les tentatives d'attaques sur votre honeypot [Cowrie](https://github.com/cowrie/cowrie). Le projet utilise Docker pour faciliter le déploiement et comprend:
