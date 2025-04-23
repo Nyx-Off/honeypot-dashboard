@@ -82,7 +82,7 @@
     }
     
     .stat-value {
-      font-size: 1.5rem;
+      font-size: 2rem;
       font-weight: 700;
       color: var(--dark-color);
     }
@@ -92,6 +92,7 @@
       color: #6c757d;
       font-size: 0.85rem;
       text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
     
     .event-item {
@@ -219,6 +220,59 @@
       white-space: pre-wrap;
       font-size: 0.85rem;
     }
+
+    /* Améliorations des statistiques */
+    .stat-icon {
+      font-size: 2.5rem;
+      color: rgba(0, 0, 0, 0.15);
+      margin-right: 1rem;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+
+    .info-tooltip {
+      cursor: help;
+    }
+
+    .events-header {
+      position: sticky;
+      top: 0;
+      background-color: #f8f9fc;
+      padding: 8px;
+      margin: -16px -16px 10px -16px;
+      border-bottom: 1px solid #e3e6f0;
+      z-index: 10;
+    }
+
+    .real-time-badge {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    .event-country {
+      display: inline-block;
+      font-size: 0.8rem;
+      color: #6c757d;
+      margin-left: 0.5rem;
+    }
+
+    .event-category {
+      text-transform: uppercase;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 3px;
+      margin-right: 5px;
+    }
   </style>
 </head>
 <body>
@@ -253,67 +307,51 @@
     </div>
 
     <!-- Cartes statistiques -->
-    <div class="row">
-      <div class="col-xl-3 col-md-6">
-        <div class="card stat-card border-primary h-100">
-          <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col">
-                <div class="stat-label">Tentatives totales</div>
-                <div class="stat-value" id="total-events">0</div>
-              </div>
-              <div class="col-auto">
-                <i class="fas fa-server fa-2x text-gray-300"></i>
-              </div>
-            </div>
+    <div class="stat-grid mb-4">
+      <div class="card stat-card border-primary h-100">
+        <div class="card-body d-flex align-items-center">
+          <div class="stat-icon">
+            <i class="fas fa-server"></i>
+          </div>
+          <div>
+            <div class="stat-label">Tentatives totales</div>
+            <div class="stat-value" id="total-events">0</div>
           </div>
         </div>
       </div>
       
-      <div class="col-xl-3 col-md-6">
-        <div class="card stat-card border-success h-100">
-          <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col">
-                <div class="stat-label">IP Uniques</div>
-                <div class="stat-value" id="unique-ips">0</div>
-              </div>
-              <div class="col-auto">
-                <i class="fas fa-globe fa-2x text-gray-300"></i>
-              </div>
-            </div>
+      <div class="card stat-card border-success h-100">
+        <div class="card-body d-flex align-items-center">
+          <div class="stat-icon">
+            <i class="fas fa-globe"></i>
+          </div>
+          <div>
+            <div class="stat-label">IP Uniques</div>
+            <div class="stat-value" id="unique-ips">0</div>
           </div>
         </div>
       </div>
       
-      <div class="col-xl-3 col-md-6">
-        <div class="card stat-card border-info h-100">
-          <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col">
-                <div class="stat-label">Login tentés</div>
-                <div class="stat-value" id="login-attempts">0</div>
-              </div>
-              <div class="col-auto">
-                <i class="fas fa-user-lock fa-2x text-gray-300"></i>
-              </div>
-            </div>
+      <div class="card stat-card border-info h-100">
+        <div class="card-body d-flex align-items-center">
+          <div class="stat-icon">
+            <i class="fas fa-user-lock"></i>
+          </div>
+          <div>
+            <div class="stat-label">Login tentés</div>
+            <div class="stat-value" id="login-attempts">0</div>
           </div>
         </div>
       </div>
       
-      <div class="col-xl-3 col-md-6">
-        <div class="card stat-card border-warning h-100">
-          <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col">
-                <div class="stat-label">Sessions</div>
-                <div class="stat-value" id="sessions-count">0</div>
-              </div>
-              <div class="col-auto">
-                <i class="fas fa-terminal fa-2x text-gray-300"></i>
-              </div>
-            </div>
+      <div class="card stat-card border-warning h-100">
+        <div class="card-body d-flex align-items-center">
+          <div class="stat-icon">
+            <i class="fas fa-terminal"></i>
+          </div>
+          <div>
+            <div class="stat-label">Sessions</div>
+            <div class="stat-value" id="sessions-count">0</div>
           </div>
         </div>
       </div>
@@ -347,10 +385,17 @@
         <div class="card">
           <div class="card-header">
             <i class="fas fa-globe me-1"></i> Origine des attaques
+            <i class="fas fa-info-circle ms-2 text-muted info-tooltip" 
+               data-bs-toggle="tooltip" 
+               data-bs-placement="top" 
+               title="Distribution des attaques par pays (nécessite GeoLite2-City.mmdb)"></i>
           </div>
           <div class="card-body">
             <div class="chart-container">
               <canvas id="geographyChart"></canvas>
+            </div>
+            <div id="geo-message" class="text-center text-muted mt-2 d-none">
+              <small>Pour activer la géolocalisation, installez GeoLite2-City.mmdb</small>
             </div>
           </div>
         </div>
@@ -362,18 +407,36 @@
           <div class="card-header d-flex justify-content-between align-items-center">
             <span>
               <i class="fas fa-list me-1"></i> Événements en temps réel
-              <span class="badge bg-danger ms-2" id="events-count">0</span>
+              <span class="badge bg-danger ms-2 real-time-badge" id="events-count">0</span>
             </span>
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" id="autoScrollSwitch" checked>
               <label class="form-check-label" for="autoScrollSwitch">Défilement auto</label>
             </div>
           </div>
-          <div class="card-body events-container" id="events-container">
-            <div class="empty-state" id="empty-state">
-              <i class="fas fa-search"></i>
-              <h5>Aucun événement pour le moment</h5>
-              <p>Les tentatives d'attaque s'afficheront ici en temps réel.</p>
+          <div class="card-body p-0">
+            <div class="events-header p-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <span>
+                  <strong>Derniers événements</strong>
+                  <span class="ms-2 badge bg-secondary" id="unread-count">0 non lus</span>
+                </span>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" id="mark-all-read">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="btn btn-outline-secondary" id="toggle-details">
+                    <i class="fas fa-list"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="events-container p-3" id="events-container">
+              <div class="empty-state" id="empty-state">
+                <i class="fas fa-search"></i>
+                <h5>Aucun événement pour le moment</h5>
+                <p>Les tentatives d'attaque s'afficheront ici en temps réel.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -390,8 +453,16 @@
       uniqueIps: new Set(),
       loginAttempts: 0,
       sessionsCount: 0,
-      eventsByType: {}
+      eventsByType: {},
+      countryData: {}
     };
+    let unreadEvents = 0;
+    
+    // Initialisation des tooltips Bootstrap
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
     
     // Initialisation des graphiques
     const attacksCtx = document.getElementById('attacksChart').getContext('2d');
@@ -428,6 +499,12 @@
               precision: 0
             }
           }
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom'
+          }
         }
       }
     });
@@ -457,6 +534,17 @@
         plugins: {
           legend: {
             position: 'right',
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.raw || 0;
+                const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                const percentage = Math.round((value / total) * 100);
+                return `${label}: ${value} (${percentage}%)`;
+              }
+            }
           }
         }
       }
@@ -497,6 +585,7 @@
       document.getElementById('login-attempts').textContent = stats.loginAttempts;
       document.getElementById('sessions-count').textContent = stats.sessionsCount;
       document.getElementById('events-count').textContent = document.querySelectorAll('.event-item').length;
+      document.getElementById('unread-count').textContent = `${unreadEvents} non lus`;
       
       // Mise à jour du graphique des attaques
       const chartData = [
@@ -521,25 +610,32 @@
     
     // Mise à jour du graphique géographique
     function updateGeoChart() {
-      // Compter les événements par pays
-      const countryCounts = {};
+      // Récupérer les données de pays et compter les occurrences
+      const countryData = {};
       
+      // Collecter les pays à partir des éléments DOM
       document.querySelectorAll('.event-item').forEach(item => {
         const country = item.dataset.country;
         if (country && country !== 'Unknown') {
-          countryCounts[country] = (countryCounts[country] || 0) + 1;
+          countryData[country] = (countryData[country] || 0) + 1;
         }
       });
       
+      // Mettre à jour les statistiques globales
+      stats.countryData = countryData;
+      
       // Convertir en tableaux pour le graphique
-      const countries = Object.keys(countryCounts);
-      const counts = countries.map(country => countryCounts[country]);
+      const countries = Object.keys(countryData).sort((a, b) => countryData[b] - countryData[a]);
+      const counts = countries.map(country => countryData[country]);
       
       // Mettre à jour le graphique
       if (countries.length > 0) {
         geoChart.data.labels = countries;
         geoChart.data.datasets[0].data = counts;
         geoChart.update();
+        document.getElementById('geo-message').classList.add('d-none');
+      } else {
+        document.getElementById('geo-message').classList.remove('d-none');
       }
     }
     
@@ -551,8 +647,6 @@
       const eventId = event.eventid || 'unknown';
       
       // Extraire le pays depuis les données de l'événement
-      // Cette propriété pourrait être différente selon la structure de vos données
-      // Essayons plusieurs possibilités courantes
       let country = 'Unknown';
       if (event.geoip && event.geoip.country_name) {
         country = event.geoip.country_name;
@@ -560,6 +654,20 @@
         country = event.country_name;
       } else if (event.country) {
         country = event.country;
+      }
+      
+      // Badge pour le type d'événement
+      let categoryBadge = '';
+      if (eventType === 'auth') {
+        categoryBadge = '<span class="event-category bg-primary text-white">AUTH</span>';
+      } else if (eventType === 'command') {
+        categoryBadge = '<span class="event-category bg-success text-white">CMD</span>';
+      } else if (eventType === 'session') {
+        categoryBadge = '<span class="event-category bg-info text-white">SESSION</span>';
+      } else if (eventType === 'client') {
+        categoryBadge = '<span class="event-category bg-secondary text-white">CLIENT</span>';
+      } else {
+        categoryBadge = '<span class="event-category bg-light text-dark">AUTRE</span>';
       }
       
       // Informations spécifiques à afficher
@@ -573,28 +681,36 @@
       }
       
       // Ajouter une indication du pays si disponible
+      let countryInfo = '';
       if (country !== 'Unknown') {
-        specificInfo += `<div class="mt-1"><i class="fas fa-globe me-1"></i> ${country}</div>`;
+        countryInfo = `<span class="event-country"><i class="fas fa-globe me-1"></i>${country}</span>`;
       }
       
       // Créer l'élément HTML
       const element = document.createElement('div');
       element.className = `event-item ${eventType} new`;
       element.dataset.country = country;
+      element.dataset.unread = 'true';
       element.innerHTML = `
         <div class="d-flex justify-content-between align-items-start">
           <div>
-            <span class="event-timestamp">${timestamp}</span>
+            <div class="d-flex align-items-center">
+              ${categoryBadge}
+              <span class="event-timestamp ms-2">${timestamp}</span>
+            </div>
             <div class="mt-1">
-              <span class="event-ip me-2">${srcIp}</span>
-              <span class="event-type-badge bg-light text-dark">${eventId}</span>
+              <span class="event-ip">${srcIp}</span>
+              ${countryInfo}
+            </div>
+            <div class="mt-1">
+              <small class="text-muted">${eventId}</small>
             </div>
           </div>
-          <button class="btn btn-sm btn-outline-secondary" 
+          <button class="btn btn-sm btn-outline-secondary event-details-toggle" 
                   data-bs-toggle="collapse" 
                   data-bs-target="#details-${event._id}" 
                   aria-expanded="false">
-            <i class="fas fa-info-circle"></i>
+            <i class="fas fa-angle-down"></i>
           </button>
         </div>
         ${specificInfo}
@@ -611,6 +727,15 @@
       }, 2000);
       
       return element;
+    }
+    
+    // Fonction pour marquer tous les événements comme lus
+    function markAllAsRead() {
+      document.querySelectorAll('.event-item[data-unread="true"]').forEach(item => {
+        item.dataset.unread = 'false';
+      });
+      unreadEvents = 0;
+      document.getElementById('unread-count').textContent = `${unreadEvents} non lus`;
     }
     
     // Réception d'un nouvel événement
@@ -632,12 +757,15 @@
       const eventsContainer = document.getElementById('events-container');
       const newEvent = createEventElement(event);
       
-      // Ajouter au début de la liste
+      // Ajouter au début de la liste (les plus récents en haut)
       if (eventsContainer.firstChild && eventsContainer.firstChild !== document.getElementById('empty-state')) {
         eventsContainer.insertBefore(newEvent, eventsContainer.firstChild);
       } else {
         eventsContainer.appendChild(newEvent);
       }
+      
+      // Incrémenter le compteur d'événements non lus
+      unreadEvents++;
       
       // Limiter le nombre d'événements affichés
       const events = eventsContainer.querySelectorAll('.event-item');
@@ -679,6 +807,9 @@
             // Vidage de l'interface
             const eventsContainer = document.getElementById('events-container');
             while (eventsContainer.firstChild) {
+              if (eventsContainer.firstChild.id === 'empty-state') {
+                break;
+              }
               eventsContainer.removeChild(eventsContainer.firstChild);
             }
             
@@ -688,6 +819,8 @@
             stats.loginAttempts = 0;
             stats.sessionsCount = 0;
             stats.eventsByType = {};
+            stats.countryData = {};
+            unreadEvents = 0;
             
             // Afficher le message vide
             document.getElementById('empty-state').style.display = 'block';
@@ -702,18 +835,81 @@
         .catch(error => {
           console.error('Erreur:', error);
           alert('Erreur lors de la suppression des événements.');
-       });
+        });
       }
     });
     
+    // Marquer tous les événements comme lus
+    document.getElementById('mark-all-read').addEventListener('click', function() {
+      markAllAsRead();
+    });
     
-    // Chargement initial des événements via l'API
+    // Basculer l'affichage détaillé pour tous les événements
+    document.getElementById('toggle-details').addEventListener('click', function() {
+      const detailButtons = document.querySelectorAll('.event-details-toggle');
+      const firstIsCollapsed = detailButtons.length > 0 && !detailButtons[0].classList.contains('active');
+      
+      detailButtons.forEach(button => {
+        const target = document.querySelector(button.getAttribute('data-bs-target'));
+        const bsCollapse = bootstrap.Collapse.getInstance(target);
+        
+        if (firstIsCollapsed) {
+          if (!button.classList.contains('active')) {
+            button.classList.add('active');
+            button.querySelector('i').classList.replace('fa-angle-down', 'fa-angle-up');
+            if (bsCollapse) {
+              bsCollapse.show();
+            } else {
+              new bootstrap.Collapse(target, { toggle: true });
+            }
+          }
+        } else {
+          if (button.classList.contains('active')) {
+            button.classList.remove('active');
+            button.querySelector('i').classList.replace('fa-angle-up', 'fa-angle-down');
+            if (bsCollapse) {
+              bsCollapse.hide();
+            }
+          }
+        }
+      });
+    });
+    
+    // Gestion des clics sur les détails des événements
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.event-details-toggle')) {
+        const button = e.target.closest('.event-details-toggle');
+        const icon = button.querySelector('i');
+        
+        if (button.classList.contains('active')) {
+          button.classList.remove('active');
+          icon.classList.replace('fa-angle-up', 'fa-angle-down');
+        } else {
+          button.classList.add('active');
+          icon.classList.replace('fa-angle-down', 'fa-angle-up');
+        }
+      }
+    });
+    
+    // Amélioration pour marquer un événement comme lu lors du clic
+    document.addEventListener('click', function(e) {
+      const eventItem = e.target.closest('.event-item');
+      if (eventItem && eventItem.dataset.unread === 'true') {
+        eventItem.dataset.unread = 'false';
+        unreadEvents = Math.max(0, unreadEvents - 1);
+        document.getElementById('unread-count').textContent = `${unreadEvents} non lus`;
+      }
+    });
+// Chargement initial des événements via l'API
     fetch('/api/events')
       .then(response => response.json())
       .then(events => {
         const eventsContainer = document.getElementById('events-container');
         
         // Traiter les événements (plus récents d'abord)
+        // Inverser l'ordre pour que les plus récents soient au début
+        events.reverse();
+        
         for (const event of events) {
           // Mise à jour des statistiques
           if (event.src_ip) stats.uniqueIps.add(event.src_ip);
@@ -730,12 +926,11 @@
           // Créer l'élément d'événement
           const eventElement = createEventElement(event);
           
-          // Ajouter au début de la liste (comme pour les nouveaux événements)
-          if (eventsContainer.firstChild && eventsContainer.firstChild !== document.getElementById('empty-state')) {
-            eventsContainer.insertBefore(eventElement, eventsContainer.firstChild);
-          } else {
-            eventsContainer.appendChild(eventElement);
-          }
+          // Marquer comme déjà lu (pas nouveau)
+          eventElement.dataset.unread = 'false';
+          
+          // Ajouter à la liste (ordre chronologique inversé)
+          eventsContainer.appendChild(eventElement);
         }
         
         // Mettre à jour le compteur total
@@ -748,6 +943,50 @@
       .catch(error => {
         console.error('Erreur lors du chargement des événements:', error);
       });
+    
+    // Code pour activer les tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialisation complète des tooltips Bootstrap
+      const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+      tooltips.forEach(tooltip => {
+        new bootstrap.Tooltip(tooltip);
+      });
+      
+      // Initialisation du SocketIO - Éviter les déconnexions
+      socket.on('error', function(error) {
+        console.error('Erreur Socket.IO:', error);
+        document.getElementById('connection-status').innerHTML = '<i class="fas fa-circle text-warning me-1"></i><span>Reconnexion...</span>';
+      });
+      
+      // Gestionnaire de périodes pour les graphiques
+      document.querySelectorAll('[data-period]').forEach(element => {
+        element.addEventListener('click', function(e) {
+          e.preventDefault();
+          const period = this.getAttribute('data-period');
+          
+          // Filtrer les événements selon la période
+          // Implémenter le filtrage ici selon les besoins
+          
+          // Mise à jour du titre du graphique
+          let periodText = '';
+          switch(period) {
+            case 'hour':
+              periodText = 'dernière heure';
+              break;
+            case 'day':
+              periodText = 'dernier jour';
+              break;
+            case 'week':
+              periodText = 'dernière semaine';
+              break;
+            default:
+              periodText = 'toutes les données';
+          }
+          
+          document.getElementById('chartOptionsDropdown').textContent = periodText;
+        });
+      });
+    });
   </script>
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
