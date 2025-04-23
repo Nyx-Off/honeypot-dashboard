@@ -459,10 +459,10 @@
     let unreadEvents = 0;
     
     // Initialisation des tooltips Bootstrap
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-      return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+    //const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    //const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    // return new bootstrap.Tooltip(tooltipTriggerEl);
+    //});
     
     // Initialisation des graphiques
     const attacksCtx = document.getElementById('attacksChart').getContext('2d');
@@ -947,11 +947,14 @@
     // Code pour activer les tooltips
     document.addEventListener('DOMContentLoaded', function() {
       // Initialisation complète des tooltips Bootstrap
-      const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-      tooltips.forEach(tooltip => {
-        new bootstrap.Tooltip(tooltip);
-      });
-      
+        if (typeof bootstrap !== 'undefined') {
+           const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+           tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+              new bootstrap.Tooltip(tooltipTriggerEl);
+     });
+    }  
+
+     
       // Initialisation du SocketIO - Éviter les déconnexions
       socket.on('error', function(error) {
         console.error('Erreur Socket.IO:', error);
